@@ -371,7 +371,7 @@ def tambah_donasi():
 
 
 # ========================================================
-# ⚡ RUTE TERBARU: AKSI UNTUK SISTEM INTERAKSI ADMIN ⚡
+# ⚡ RUTE TERBARU: AKSI UNTUK SISTEM INTERAKSI ADMIN (FIXED UPLOAD)
 # ========================================================
 
 # 🔵 TOMBOL 1: POSTING DAERAH BARU + FOTO KONDISI AWAL
@@ -380,13 +380,10 @@ def post_kondisi_baru():
     nama_bencana = request.form.get('nama_bencana')
     files = request.files.getlist('foto_kondisi[]')
     
-    nama_foto_list = []
-    for file in files:
-        if file and file.filename:
-            file.save(f"static/uploads/{file.filename}")
-            nama_foto_list.append(file.filename)
+    # PERBAIKAN: Gunakan fungsi save_file(file) agar nama file diubah menjadi unik & bebas spasi
+    nama_foto_list = [save_file(f) for f in files if f.filename]
             
-    foto_kondisi_string = ",".join(nama_foto_list) if nama_foto_list else None
+    foto_kondisi_string = ",".join(filter(None, nama_foto_list)) if nama_foto_list else None
     
     try:
         db = koneksi.get_connection()
@@ -411,16 +408,13 @@ def tambah_foto_penyaluran():
     nama_bencana = request.form.get('nama_bencana')
     files = request.files.getlist('foto_penyaluran[]')
     
-    nama_foto_list = []
-    for file in files:
-        if file and file.filename:
-            file.save(f"static/uploads/{file.filename}")
-            nama_foto_list.append(file.filename)
+    # PERBAIKAN: Gunakan fungsi save_file(file) agar nama file diubah menjadi unik & bebas spasi
+    nama_foto_list = [save_file(f) for f in files if f.filename]
             
     if not nama_foto_list:
         return jsonify({'success': False, 'message': 'Tidak ada file foto yang dipilih.'})
         
-    foto_baru_string = ",".join(nama_foto_list)
+    foto_baru_string = ",".join(filter(None, nama_foto_list))
     
     try:
         db = koneksi.get_connection()
