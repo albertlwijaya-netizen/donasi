@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- NAVIGASI -->
+<nav class="bg-gray-900 text-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+        <a href="/" class="text-xl font-bold text-emerald-400">CareLink</a>
+        
+        <div class="flex items-center gap-6">
+            <a href="{{ url_for('index') }}" class="hover:text-emerald-400 text-sm font-medium">Beranda</a>
+            <a href="{{ url_for('tentang_kami') }}" class="hover:text-emerald-400 text-sm font-medium">Tentang Kami</a>
+            
+            {% if current_user.role == 'admin' %}
+                <a href="{{ url_for('dashboard_admin') }}" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-bold text-xs transition shadow-sm">
+                    PANEL ADMIN
+                </a>
+                <a href="{{ url_for('logout') }}" class="text-red-400 hover:text-red-300 text-xs font-bold">Keluar</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="border border-emerald-400 text-emerald-400 hover:bg-emerald-400 hover:text-white px-4 py-2 rounded-lg font-bold text-xs transition">
+                    LOGIN ADMIN
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<!-- HERO SECTION -->
+<div class="bg-gray-800 text-white py-12 mb-10 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 class="text-4xl font-extrabold text-emerald-400">CareLink Platform</h1>
+        <p class="mt-2 text-gray-300 text-lg">Salurkan bantuan Anda dengan transparan, cepat, dan tepat sasaran.</p>
+    </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-6 p-4 rounded-xl text-sm font-semibold {% if category == 'success' %} bg-emerald-50 text-emerald-800 border border-emerald-200 {% else %} bg-red-50 text-red-800 border border-red-200 {% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Widget Saldo -->
+    <div class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-6 text-white shadow-lg mb-10 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div>
+            <h3 class="text-sm font-semibold opacity-80">Total Saldo Kas Tersedia</h3>
+            <p class="text-4xl font-black mt-1">Rp {{ "{:,.2f}".format(saldo) }}</p>
+        </div>
+
+        <div class="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg">
+            <h3 class="text-xs font-bold uppercase opacity-80 flex items-center gap-2">
+                <span class="bg-white/20 p-1 rounded"></span> Total Dana Disalurkan
+            </h3>
+            <p class="text-3xl font-black mt-2">Rp {{ "{:,.2f}".format(total_penyaluran) }}</p>
+        </div>
+
+        <button type="button" onclick="openDonationModal(event)" class="bg-white text-emerald-700 font-bold px-6 py-3 rounded-xl hover:bg-gray-100 transition shadow-md">
+            Donasi Sekarang
+        </button>
+    </div>
+
+    <!-- SEKSI 1: LOKASI TERDAMPAK -->
+    <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">📍 Lokasi Wilayah Terdampak <span class="text-xs font-normal text-gray-400">(Klik foto untuk memperbesar)</span></h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+        {% for bencana in distributions %}
+        <div class="bg-white border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition">
+            <!-- Galeri Foto Kondisi (Update: Ditambahkan onclick Lightbox) -->
+            <div class="grid grid-cols-2 gap-1 bg-gray-100 h-48">
+                {% if bencana.list_foto %}
+                    {% for foto in bencana.list_foto[:4] %} 
+                        <img src="{{ url_for('static', filename='uploads/' + foto | trim) }}" 
+                             class="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-all duration-300"
+                             onclick="bukaLightbox(this.src)"
+                             title="Klik untuk melihat foto">
+                    {% endfor %}
+                {% else %}
+                    <div class="col-span-2 flex items-center justify-center text-gray-400 text-xs italic">Tidak ada foto kondisi</div>
+                {% endif %}
+            </div>
+            
+            <div class="p-5">
+                <h4 class="font-black text-lg capitalize mb-2">{{ bencana.nama_bencana }}</h4>
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded">STATUS: TERDAMPAK</span>
+                </div>
+                <p class="text-sm text-gray-600 line-clamp-3">{{ bencana.deskripsi or 'Menunggu pembaruan data lapangan...' }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- SEKSI 2: BUKTI PENYALURAN -->
+    <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">✅ Bukti Penyaluran & Dokumentasi <span class="text-xs font-normal text-gray-400">(Dokumentasi Real-time)</span></h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+        {% for bencana in distributions %}
+            {% if bencana.list_foto_penyaluran and bencana.list_foto_penyaluran|length > 0 %}
+            <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 shadow-sm">
+                <h4 class="font-black text-emerald-800 text-base capitalize mb-3">Selesai Disalurkan: {{ bencana.nama_bencana }}</h4>
+                <!-- Update: Ditambahkan onclick Lightbox -->
+                <div class="grid grid-cols-4 gap-2">
+                    {% for foto in bencana.list_foto_penyaluran %}
+                        {% if foto | trim != '' %}
+                        <img src="{{ url_for('static', filename='uploads/' + foto | trim) }}" 
+                             class="rounded-lg h-16 w-full object-cover border border-white cursor-pointer hover:scale-110 transition-transform duration-300 shadow-sm"
+                             onclick="bukaLightbox(this.src)">
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <p class="text-[11px] text-emerald-600 mt-3 font-medium italic">* Foto diambil langsung oleh relawan di lokasi.</p>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+<!-- MODAL LIGHTBOX (TAMBAHAN UNTUK LIHAT FOTO BESAR) -->
+<div id="lightboxModal" class="fixed inset-0 z-[1000] hidden bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm" onclick="tutupLightbox()">
+    <button class="absolute top-5 right-5 text-white text-5xl font-light hover:text-emerald-400 transition">&times;</button>
+    <div class="max-w-5xl w-full flex justify-center" onclick="event.stopPropagation()">
+        <img id="lightboxImage" src="" class="max-h-[85vh] max-w-full rounded-lg shadow-2xl border-2 border-white/20">
+    </div>
+</div>
+
+<!-- Modal Donasi -->
+<div id="donationModal" class="fixed inset-0 z-[100] hidden bg-gray-950/75 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+        <div class="bg-emerald-600 p-4 text-white flex justify-between items-center">
+            <h3 class="text-lg font-bold">Formulir Donasi</h3>
+            <button onclick="closeDonationModal()" class="text-white hover:text-gray-200 text-2xl">&times;</button>
+        </div>
+        <form action="{{ url_for('tambah_donasi') }}" method="POST" enctype="multipart/form-data" class="p-6">
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nama Donatur</label>
+                <input type="text" name="nama_donatur" required class="w-full border-2 border-gray-100 p-2.5 rounded-xl focus:border-emerald-500 outline-none transition" placeholder="Contoh: Hamba Allah">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Pilih Bank Tujuan</label>
+                <select name="bank_tujuan" class="w-full border-2 border-gray-100 p-2.5 rounded-xl outline-none text-sm">
+                    <option value="Mandiri">Mandiri - 123456789 (CareLink)</option>
+                    <option value="BCA">BCA - 987654321 (CareLink)</option>
+                    <option value="BRI">BRI - 0011223344 (CareLink)</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Jumlah Donasi (Rp)</label>
+                <input type="number" name="jumlah" required class="w-full border-2 border-gray-100 p-2.5 rounded-xl focus:border-emerald-500 outline-none transition" placeholder="Minimal Rp 10,000">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Keterangan (Opsional)</label>
+                <textarea name="keterangan" class="w-full border-2 border-gray-100 p-2.5 rounded-xl outline-none" placeholder="Tulis doa atau pesan..."></textarea>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Bukti Transfer (Gambar)</label>
+                <input type="file" name="bukti_transfer" required class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+            </div>
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-black transition shadow-lg shadow-emerald-200">
+                Kirim Konfirmasi Donasi
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // FUNGSI LIGHTBOX
+    function bukaLightbox(src) {
+        const modal = document.getElementById('lightboxModal');
+        const img = document.getElementById('lightboxImage');
+        img.src = src;
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; // Matikan scroll background
+    }
+
+    function tutupLightbox() {
+        const modal = document.getElementById('lightboxModal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto'; // Aktifkan scroll background
+    }
+
+    // FUNGSI MODAL DONASI
+    function openDonationModal(e) { 
+        e.preventDefault(); 
+        document.getElementById('donationModal').classList.remove('hidden'); 
+    }
+    function closeDonationModal() { 
+        document.getElementById('donationModal').classList.add('hidden'); 
+    }
+    
+    // Menutup modal jika klik di luar area konten
+    window.onclick = function(event) {
+        let donationModal = document.getElementById('donationModal');
+        if (event.target == donationModal) {
+            closeDonationModal();
+        }
+    }
+
+    // Menutup lightbox dengan tombol ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === "Escape") {
+            tutupLightbox();
+            closeDonationModal();
+        }
+    });
+</script>
+{% endblock %}

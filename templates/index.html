@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="min-h-screen flex flex-col items-center justify-center px-4 bg-gray-50">
+    <div class="max-w-md w-full bg-white p-8 rounded-xl shadow-md border border-gray-100 text-center">
+        <h2 class="text-3xl font-bold text-emerald-600 mb-2">Selamat Datang di Link Donasi Amanah</h2>
+        <p class="text-gray-500 mb-6">Luaskan hatimu untuk membantu saudara yang sedang membutuhkan kita</p>
+        
+
+        <div class="space-y-3">
+            <a href="{{ url_for('login') }}" class="block w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
+                Masuk sebagai Admin
+            </a>
+            <p class="text-sm text-gray-500">Atau belum punya akun?</p>
+            <a href="/register" class="block w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg transition duration-200">
+                Daftar Akun Baru
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

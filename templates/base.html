@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareLink - Manajemen Donasi Bencana</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="fixed top-5 right-5 z-50 space-y-2">
+          {% for category, message in messages %}
+            <div class="p-4 rounded-lg shadow-lg text-white {% if category == 'danger' %}bg-red-500{% else %}bg-green-500{% endif %}">
+                {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}
+    {% endblock %}
+
+    <script>
+      // 1. PERBAIKAN: Targetkan langsung id atau container flash message agar tidak mengganggu modal
+      setTimeout(() => {
+          const flashContainer = document.querySelector('div.fixed.top-5.right-5');
+          if (flashContainer) {
+              flashContainer.remove();
+          }
+      }, 4000);
+
+      // 2. AMAN: Fungsi membuka modal dengan display flex
+      function openDonationModal(event) {
+          if (event) {
+              event.preventDefault();
+              event.stopPropagation(); 
+          }
+          const modal = document.getElementById('donationModal');
+          if(modal) {
+              modal.classList.remove('hidden');
+              modal.style.setProperty('display', 'flex', 'important'); // Memaksa browser menerapkan flex layout
+              document.body.style.overflow = 'hidden'; 
+          }
+      }
+      
+      // 3. AMAN: Fungsi menutup modal
+      function closeDonationModal() {
+          const modal = document.getElementById('donationModal');
+          if(modal) {
+              modal.style.setProperty('display', 'none', 'important');
+              modal.classList.add('hidden');
+              document.body.style.overflow = 'auto'; 
+          }
+      }
+
+      // 4. PERBAIKAN UTAMA: Tambahkan logika klik luar yang super ketat di sini
+      window.onclick = function(event) {
+          const modal = document.getElementById('donationModal');
+          // Hanya menutup jika yang diklik BENAR-BENAR area latar belakang hitam (modal)
+          if (event.target === modal) {
+              closeDonationModal();
+          }
+      }
+  </script>
+</body>
+</html>

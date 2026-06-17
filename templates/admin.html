@@ -1,0 +1,325 @@
+{% extends 'base.html' %}
+{% block content %}
+<!-- Navbar Admin -->
+<nav class="bg-gray-800 text-white p-4 flex justify-between items-center sticky top-0 z-50">
+    <span class="text-xl font-bold text-emerald-400">CareLink Admin</span>
+    <div class="flex items-center gap-4">
+        <span class="text-xs">Admin: {{ current_user.username }}</span>
+        <a href="{{ url_for('logout') }}" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-xs font-bold transition">Keluar</a>
+    </div>
+</nav>
+
+<div class="max-w-7xl mx-auto px-4 py-8">
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-6 p-4 rounded-xl text-sm font-semibold {% if category == 'success' %} bg-emerald-50 text-emerald-800 border border-emerald-200 {% else %} bg-red-50 text-red-800 border border-red-200 {% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- 1. Statistik Card -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-emerald-500">
+            <h3 class="text-xs font-bold text-gray-400 uppercase">Donasi Masuk</h3>
+            <p class="text-2xl font-black text-emerald-600 mt-1">Rp {{ "{:,.2f}".format(total_masuk) }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500">
+            <h3 class="text-xs font-bold text-gray-400 uppercase">Total Penyaluran</h3>
+            <p class="text-2xl font-black text-red-600 mt-1">Rp {{ "{:,.2f}".format(total_keluar) }}</p>
+        </div>
+        <div class="bg-gray-800 text-white p-6 rounded-xl shadow-sm border-l-4 border-emerald-400">
+            <h3 class="text-xs font-bold opacity-70 uppercase">Saldo Kas</h3>
+            <p class="text-2xl font-black mt-1 text-emerald-300">Rp {{ "{:,.2f}".format(saldo) }}</p>
+        </div>
+    </div>
+
+    <!-- 2. Form Input (Daftar Daerah Baru & Transaksi Dana) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+        <!-- Form Daftar Daerah Baru -->
+        <div class="bg-white p-6 rounded-xl border shadow-sm">
+            <h3 class="font-bold mb-4"> Daftarkan Daerah Bencana</h3>
+            <form action="{{ url_for('post_kondisi_baru') }}" method="POST" enctype="multipart/form-data">
+                <input type="text" name="nama_bencana" required class="w-full border p-2 mb-3 rounded-lg text-sm outline-none focus:border-emerald-500" placeholder="Nama Lokasi">
+                <label class="block text-[10px] font-bold text-gray-400 mb-1">FOTO KONDISI</label>
+                <input type="file" name="foto_kondisi[]" multiple required class="w-full text-xs mb-3">
+                <button type="submit" class="w-full bg-slate-800 text-white py-2 rounded-lg text-sm font-bold hover:bg-slate-900 transition">Daftarkan Wilayah</button>
+            </form>
+        </div>
+
+        <!-- Form Salurkan Dana -->
+        <div class="bg-white p-6 rounded-xl border shadow-sm">
+            <h3 class="font-bold mb-4"> Salurkan Dana Bantuan</h3>
+            <form action="{{ url_for('tambah_penyaluran_dana') }}" method="POST">
+                <div class="mb-3">
+                    <label class="block text-gray-600 font-bold mb-1 text-xs uppercase">Target Daerah</label>
+                    <input type="text" name="nama_bencana" required class="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-gray-50" placeholder="Ketik nama daerah...">
+                </div>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <div>
+                        <label class="block text-gray-600 font-bold mb-1 text-xs uppercase">Pilih Bank</label>
+                        <select name="bank_penerima" class="w-full px-3 py-2 border rounded-xl text-sm bg-gray-50">
+                            <option value="BCA">BCA</option>
+                            <option value="Mandiri">Mandiri</option>
+                            <option value="BRI">BRI</option>
+                            <option value="BNI">BNI</option>
+                            <option value="BSI">BSI</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                <!-- TEMPELKAN KODE BANK DI SINI (Di bawah Target Daerah) -->
+                <div class="mb-3">
+                    <label class="block text-gray-600 font-bold mb-1 text-xs uppercase">Bank / No. Rekening Penerima</label>
+                    <input type="text" name="bank_penerima" class="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-gray-50" placeholder="Contoh: BRI - 123456 (Posko Banjir)">
+                </div>
+        
+                <!-- 2. Input Jumlah Dana -->
+                <div class="mb-3">
+                    <label class="block text-gray-600 font-bold mb-1 text-xs uppercase">Jumlah Dana (Rp)</label>
+                    <input type="number" name="jumlah_disalurkan" required min="0" class="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-gray-50" placeholder="Contoh: 5000000">
+                </div>
+        
+                <!-- 3. Input Keterangan -->
+                <div class="mb-4">
+                    <label class="block text-gray-600 font-bold mb-1 text-xs uppercase">Keterangan Penyaluran</label>
+                    <textarea name="deskripsi" required rows="2" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-gray-50" placeholder="Detail bantuan..."></textarea>
+                </div>
+        
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm shadow-lg">
+                    Proses Pengiriman Dana
+                </button>
+            </form>
+        </div>
+
+    <!-- 3. TABEL LOG PENYALURAN -->
+    <div class="bg-white rounded-xl border shadow-sm mb-10 overflow-hidden">
+        <div class="p-4 bg-gray-50 border-b">
+            <h3 class="font-bold text-gray-700">Log Penyaluran & Manajemen Foto</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead>
+                    <tr class="bg-gray-100 text-gray-500 uppercase text-[10px]">
+                        <th class="p-3">Info Daerah</th>
+                        <th class="p-3">Foto Kondisi</th>
+                        <th class="p-3">Foto Bukti</th>
+                        <th class="p-3 text-center">Aksi</th>
+                    </tr>
+                </thead>
+
+                <tbody class="divide-y">
+                    {% for row in distributions %}
+                    <tr class="hover:bg-gray-50/50">
+
+                        <td class="p-3">
+                            <div class="flex items-center gap-2">
+                            <span class="font-bold text-gray-800 text-sm capitalize">{{ row.nama_bencana }}</span>
+
+                            <button onclick="bukaModalEdit('{{ row.id }}', '{{ row.nama_bencana }}', '{{ row.jumlah_disalurkan }}', '{{ row.deskripsi }}')" 
+                            class="text-blue-500 hover:text-blue-700 text-[10px] font-bold" title="Edit Alamat/Nama">
+                        </button>
+                    </div>
+                    
+                            <div class="text-red-500 font-bold text-xs">Rp {{ "{:,.0f}".format(row.jumlah_disalurkan) }}</div>
+                            <div class="text-[9px] text-gray-400 mt-1">{{ row.tanggal_penyaluran }}</div>
+                        </td>
+
+                        <td class="p-3 align-top w-64">
+                            <div class="flex flex-wrap gap-1 mb-2">
+                                {% set list_k = row.foto_kondisi.split(',') if row.foto_kondisi else [] %}
+                                {% for f in list_k %}
+                                    {% if f.strip() %}
+                                    <img src="{{ url_for('static', filename='uploads/' + f.strip()) }}" 
+                                         class="w-10 h-10 object-cover rounded border shadow-sm">
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+
+                            
+                            <form action="{{ url_for('edit_foto_kondisi', id=row.id) }}" method="POST" enctype="multipart/form-data">
+                                <label class="text-[9px] bg-white text-gray-500 p-1 rounded cursor-pointer border block text-center hover:bg-gray-100 transition">GANTI FOTO<input type="file" name="foto_kondisi[]" multiple class="hidden" onchange="this.form.submit()"></label>
+                            </form>
+                        </td>
+                        <td class="p-3">
+                            <div class="flex flex-wrap gap-1 mb-1">
+                                {% set fp = row.foto_penyaluran.split(',') if row.foto_penyaluran else [] %}
+                                {% for f in fp %}
+                                <img src="{{ url_for('static', filename='uploads/' + f.strip()) }}" class="w-8 h-8 object-cover rounded border border-emerald-200">
+                                {% endfor %}
+                            </div>
+
+                            <form action="{{ url_for('update_foto_bukti', id=row.id) }}" method="POST" enctype="multipart/form-data">
+                                <label class="text-[9px] bg-emerald-50 text-emerald-700 p-1 rounded cursor-pointer border border-emerald-200 block text-center hover:bg-emerald-100 transition">TAMBAH BUKTI<input type="file" name="foto_penyaluran[]" multiple class="hidden" onchange="this.form.submit()"></label>
+                            </form>
+                        </td>
+                        <td class="p-3 text-center">
+                            <div class="flex flex-col gap-1">
+                                <button onclick="bukaModalEdit('{{ row.id }}', '{{ row.nama_bencana }}', '{{ row.jumlah_disalurkan }}', '{{ row.deskripsi }}')" class="bg-amber-500 text-white px-2 py-1 rounded text-[10px] font-bold">EDIT</button>
+                                <a href="{{ url_for('hapus_penyaluran', id=row.id) }}" class="bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold" onclick="return confirm('Hapus data ini?')">HAPUS</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 4. TABEL DONASI MASUK -->
+    <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
+        <div class="p-4 bg-gray-50 border-b">
+            <h3 class="font-bold text-gray-700">Seluruh Daftar Donasi Masuk</h3>
+        </div>
+
+        <div class="bg-white rounded-xl border-2 border-amber-400 shadow-md overflow-hidden mb-10">
+            <div class="p-4 bg-amber-400 text-white flex justify-between items-center">
+                <h3 class="font-bold uppercase text-sm">Perlu Verifikasi (Donasi Baru)</h3>
+                <span class="text-[10px] bg-white text-amber-600 px-2 py-1 rounded-full font-bold">CEK BUKTI TRANSFER</span>
+            </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead>
+                    <tr class="bg-gray-100 text-gray-500 uppercase text-[10px]">
+                        <th class="p-3">Tanggal</th>
+                        <th class="p-3">Nama Donatur</th>
+                        <th class="p-3">Bank</th>
+                        <th class="p-3">Jumlah</th>
+                        <th class="p-3 text-center">Bukti</th>
+                        <th class="p-3 text-center">Aksi</th> 
+                    </tr>
+                </thead>
+                <tbody class="divide-y">
+                    {% set pending_count = namespace(value=0) %}
+                    {% for row in donations %}
+                        {% if row.status == 'pending' %}
+                        {% set pending_count.value = pending_count.value + 1 %}
+                    
+                    <tr class="border-b">
+                        <td class="p-3 text-[11px] text-gray-500">{{ row.tanggal }}</td>
+                        <td class="p-3 font-bold">{{ row.nama_donatur }}</td>
+                        <td class="p-3 text-xs">{{ row.bank_tujuan or '-' }}</td>
+                        <td class="p-3 text-emerald-600 font-bold">Rp {{ "{:,.0f}".format(row.jumlah) }}</td>
+                        <td class="p-3 text-center">
+                            <a href="{{ url_for('static', filename='uploads/' + row.bukti_transfer) }}" target="_blank" class="text-blue-600 font-bold text-[10px] underline">LIHAT FOTO</a>
+                            </td>
+                            <td class="p-3 text-center flex justify-center gap-2">
+                                <a href="{{ url_for('konfirmasi_donasi', id=row.id) }}" class="bg-emerald-500 text-white px-3 py-1 rounded text-[10px] font-bold">TERIMA</a>
+                                <a href="{{ url_for('tolak_donasi', id=row.id) }}" onclick="return confirm('Hapus data palsu ini?')" class="bg-red-500 text-white px-3 py-1 rounded text-[10px] font-bold">TOLAK</a>
+                            </td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if pending_count.value == 0 %}
+                <tr>
+                    <td colspan="5" class="p-10 text-center text-gray-400 italic">Tidak ada donasi baru yang perlu diverifikasi.</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TABEL RIWAYAT (DONASI YANG SUDAH TERIMA/VERIFIED) -->
+<div class="bg-white rounded-xl border shadow-sm overflow-hidden">
+    <div class="p-4 bg-gray-50 border-b">
+        <h3 class="font-bold text-gray-700">✅ Seluruh Donasi Terverifikasi</h3>
+    </div>
+    <table class="w-full text-left text-sm">
+        <thead class="bg-gray-50 text-gray-400 text-[10px] uppercase">
+            <tr>
+                <th class="p-3">Tanggal</th>
+                <th class="p-3">Donatur</th>
+                <th class="p-3">Jumlah</th>
+                <th class="p-3">Status</th>
+                <th class="p-3 text-center">Aksi</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y">
+            {% for row in donations %}
+                {% if row.status == 'terverifikasi' %}
+                <tr>
+                    <td class="p-3 text-[11px]">{{ row.tanggal }}</td>
+                    <td class="p-3 font-medium">{{ row.nama_donatur }}</td>
+                    <td class="p-3 text-emerald-600 font-bold">Rp {{ "{:,.0f}".format(row.jumlah) }}</td>
+                    <td class="p-3"><span class="text-[9px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">VERIFIED</span></td>
+                    <td class="p-3 text-center">
+                        <a href="{{ url_for('hapus_donasi', id=row.id) }}" onclick="return confirm('Hapus riwayat ini?')" class="text-red-400 hover:text-red-600 text-xs font-bold">Hapus</a>
+                    </td>
+                </tr>
+                {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div id="editDonasiModal" class="fixed inset-0 z-[110] hidden bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="bg-amber-500 p-4 text-white flex justify-between items-center">
+            <h3 class="font-bold">Edit Data Donasi</h3>
+            <button onclick="tutupModalDonasi()" class="text-2xl">&times;</button>
+        </div>
+        <form id="editDonasiForm" method="POST" class="p-6 space-y-4">
+            <div>
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nama Donatur</label>
+                <input type="text" id="edit_nama_donatur" name="nama_donatur" required class="w-full border p-2 rounded-lg text-sm">
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Jumlah (Rp)</label>
+                <input type="number" id="edit_jumlah_donasi" name="jumlah" required class="w-full border p-2 rounded-lg text-sm">
+            </div>
+            <button type="submit" class="w-full bg-amber-500 text-white font-bold py-2 rounded-xl">Simpan Perubahan</button>
+        </form>
+    </div>
+</div>
+
+
+<!-- Modal Edit Text -->
+<div id="editModal" class="fixed inset-0 z-[100] hidden bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="bg-amber-500 p-4 text-white flex justify-between items-center">
+            <h3 class="font-bold">Edit Informasi Wilayah</h3>
+            <button onclick="closeEditModal()" class="text-2xl hover:text-gray-200">&times;</button>
+        </div>
+        <form id="editForm" method="POST" class="p-6 space-y-4">
+            <div>
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nama Lokasi</label>
+                <input type="text" id="edit_nama_bencana" name="nama_bencana" required class="w-full border p-2 rounded-lg outline-none focus:border-amber-500 text-sm">
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Bank Penerima</label>
+                <input type="text" id="edit_bank_penerima" name="bank_penerima" class="w-full border p-2 rounded-lg text-sm">
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Dana Disalurkan (Rp)</label>
+                <input type="number" id="edit_jumlah_disalurkan" name="jumlah_disalurkan" class="w-full border p-2 rounded-lg outline-none focus:border-amber-500 text-sm">
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Keterangan Lapangan</label>
+                <textarea id="edit_deskripsi" name="deskripsi" rows="3" class="w-full border p-2 rounded-lg outline-none focus:border-amber-500 text-sm"></textarea>
+            </div>
+            <button type="submit" class="w-full bg-amber-500 text-white font-bold py-2 rounded-xl hover:bg-amber-600 transition shadow-lg">Simpan Perubahan</button>
+        </form>
+    </div>
+</div>
+
+<script>
+function bukaModalEdit(id, nama, jumlah, deskripsi) {
+    document.getElementById('edit_nama_bencana').value = nama;
+    document.getElementById('edit_jumlah_disalurkan').value = jumlah;
+    document.getElementById('edit_deskripsi').value = deskripsi;
+    document.getElementById('edit_bank_penerima').value = bank; 
+    document.getElementById('edit_rekening_penerima').value = rekening;
+    document.getElementById('editForm').action = "/edit-penyaluran/" + id;
+    document.getElementById('editModal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').classList.add('hidden');
+}
+</script>
+{% endblock %}
