@@ -203,9 +203,19 @@
                         <td class="p-3 font-bold">{{ row.nama_donatur }}</td>
                         <td class="p-3 text-xs">{{ row.bank_tujuan or '-' }}</td>
                         <td class="p-3 text-emerald-600 font-bold">Rp {{ "{:,.0f}".format(row.jumlah) }}</td>
-                        <td class="p-3 text-center">
-                            <a href="{{ url_for('static', filename='uploads/' + row.bukti_transfer) }}" target="_blank" class="text-blue-600 font-bold text-[10px] underline">LIHAT FOTO</a>
-                            </td>
+                       <td class="p-3 text-center">
+    {% if row.bukti_transfer %}
+        <a href="{{ url_for('static', filename='uploads/' + row.bukti_transfer) }}"
+           target="_blank"
+           class="text-blue-600 font-bold text-[10px] underline">
+           LIHAT FOTO
+        </a>
+    {% else %}
+        <span class="text-gray-400 text-[10px]">
+            TIDAK ADA FOTO
+        </span>
+    {% endif %}
+</td>
                             <td class="p-3 text-center flex justify-center gap-2">
                                 <a href="{{ url_for('konfirmasi_donasi', id=row.id) }}" class="bg-emerald-500 text-white px-3 py-1 rounded text-[10px] font-bold">TERIMA</a>
                                 <a href="{{ url_for('tolak_donasi', id=row.id) }}" onclick="return confirm('Hapus data palsu ini?')" class="bg-red-500 text-white px-3 py-1 rounded text-[10px] font-bold">TOLAK</a>
