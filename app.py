@@ -343,8 +343,7 @@ def tambah_donasi():
     bank_tujuan = request.form.get('bank_tujuan')
     keterangan = request.form.get('keterangan') 
     
-    file_bukti = request.files.get('bukti_transfer')
-    nama_file_simpan = save_file(file_bukti) 
+    nama_file_simpan = None
     
     db = None
         
